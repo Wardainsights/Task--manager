@@ -8,6 +8,11 @@ from database import engine, SessionLocal
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+from fastapi.responses import RedirectResponse
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/docs")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
