@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProTask Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            width: 100%;
+            max-width: 480px;
+            color: #fff;
+        }
+        h1 { text-align: center; margin-bottom: 8px; font-weight: 600; font-size: 26px; }
+        .subtitle { text-align: center; font-size: 13px; margin-bottom: 25px; color: rgba(255, 255, 255, 0.8); }
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        form { display: flex; gap: 10px; margin-bottom: 20px; }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 15px;
+            border: none;
+            outline: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 14px;
+        }
+        button.add-btn {
+            padding: 12px 20px;
+            background: #00c6ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button.add-btn:hover { background: #0072ff; }
+        ul { list-style: none; max-height: 300px; overflow-y: auto; padding-right: 5px; }
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #00c6ff;
+        }
+        li.completed span { text-decoration: line-through; color: rgba(255, 255, 255, 0.5); }
+        .actions { display: flex; gap: 6px; }
+        .actions button {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            color: white;
+        }
+        .btn-done { background: #28a745; }
+        .btn-del { background: #ff4757; }
+        .empty-state { text-align: center; color: rgba(255, 255, 255, 0.6); padding: 20px; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 ProTask Manager</h1>
+        <div class="subtitle">Full-Stack FastAPI & SQLite Web App</div>
+
+        <div class="stats-bar">
+            <span id="total-tasks">Total: 0</span>
+            <span id="pending-tasks">Pending: 0</span>
+        </div>
+
+        <form id="task-form">
+            <input type="text" id="task-input" placeholder="Koi naya kaam yahan likhein..." required>
+            <button type="submit" class="add-btn">Add Task</button>
+        </form>
+
+        <ul id="task-list"></ul>
+    </div>
+
+    <script>
+        const API_URL = "/tasks";
+
+        document.getElementById("task-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const input = document.getElementById("task-input");
+            const title = input.value.trim();
+            if (!title) return;
+
+            await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title })
+            });
+
+            input.value = "";
+            loadTasks();
+        });
+
+        async function loadTasks() {
+            try {
+                const res = await fetch(API_URL);
+                const tasks = await res.json();
+                const list = document.getElementById("task-list");
+                list.innerHTML = "";
+
+                let total = tasks.length;
+                let pending = tasks.filter(t => !t.completed).length;
+
+                document.getElementById("total-tasks").innerText = `Total: ${total}`;
+                document.getElementById("pending-tasks").innerText = `Pending: ${pending}`;
+
+                if (total === 0) {
+                    list.innerHTML = `<div class="empty-state">🎉 Zabardast! Abhi koi task pending nahi hai.</div>`;
+                    return;
+                }
+
+                tasks.forEach(task => {
+                    const li = document.createElement("li");
+                    li.className = task.completed ? "completed" : "";
+                    li.innerHTML = `
+                        <span>${task.title}</span>
+                        <div class="actions">
+                            <button class="btn-done" onclick="toggleTask(${task.id}, '${task.title}', ${!task.completed})">
+                                ${task.completed ? "Undo" : "Done"}
+                            </button>
+                            <button class="btn-del" onclick="deleteTask(${task.id})">Del</button>
+                        </div>
+                    `;
+                    list.appendChild(li);
+                });
+            } catch (err) {
+                console.error("Error loading tasks:", err);
+            }
+        }
+
+        async function toggleTask(id, title, completed) {
+            await fetch(`${API_URL}/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, completed })
+            });
+            loadTasks();
+        }
+
+        async function deleteTask(id) {
+            await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+            loadTasks();
+        }
+
+        loadTasks();
+    </script>
+</body>
+</html>
