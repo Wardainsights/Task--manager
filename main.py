@@ -7,6 +7,11 @@ import models, schemas, database
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
+from fastapi.responses import RedirectResponse
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/docs")
 
 # 1. Static folder ko mount karein taake frontend ki files chal sakein
 app.mount("/static", StaticFiles(directory="static"), name="static")
