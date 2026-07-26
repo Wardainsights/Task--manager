@@ -49,3 +49,19 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     db.delete(task)
     db.commit()
     return None
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+
+app = FastAPI()
+
+# 1. Yeh line aapke static folder ko backend se connect karti hai
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# 2. Yeh route jab koi main link kholega toh index.html dikhayega
+@app.get("/", response_class=HTMLResponse)
+async def read_index():
+    with open("static/index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+# (Aapke baaki ke API routes jo pehle se hain, woh waise hi rahenge)
